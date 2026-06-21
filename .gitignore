@@ -1,0 +1,3 @@
+# Git管理対象外ファイル
+doc/
+.DS_Store

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - ホーム</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      WeatherNow
+      <span>天気情報サービス</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item active">
+        <span class="nav-icon">🏠</span> ホーム
+      </a>
+      <a href="hourly.html" class="nav-item">
+        <span class="nav-icon">🕐</span> 時間別予報
+      </a>
+      <a href="weekly.html" class="nav-item">
+        <span class="nav-icon">📅</span> 週間予報
+      </a>
+      <a href="cities.html" class="nav-item">
+        <span class="nav-icon">🗾</span> 各地の天気
+      </a>
+      <a href="living.html" class="nav-item">
+        <span class="nav-icon">📊</span> 生活指数
+      </a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item">
+        <span class="nav-icon">⭐</span> お気に入り
+      </a>
+      <a href="news.html" class="nav-item">
+        <span class="nav-icon">📢</span> 気象情報
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      © 2025 WeatherNow
+    </div>
+  </aside>
+
+  <!-- メインコンテンツ -->
+  <div class="app-content">
+
+    <!-- トップバー -->
+    <div class="topbar">
+      <div class="topbar-title">ホーム</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+        <button class="btn btn-outline" id="favoriteBtn">⭐ お気に入りに追加</button>
+      </div>
+    </div>
+
+    <!-- ページコンテンツ -->
+    <div class="page-content">
+
+      <!-- 検索 -->
+      <div class="search-box">
+        <input type="text" id="addressInput" class="search-input" placeholder="郵便番号を入力してください（例：543-0001）" maxlength="8" />
+        <button class="search-btn" id="searchBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+          </svg>
+          検索
+        </button>
+      </div>
+
+      <!-- 検索履歴 -->
+      <div class="history-section" id="historySection">
+        <div class="history-label">検索履歴</div>
+        <div class="history-list" id="historyList"></div>
+        <button class="clear-history-btn" id="clearHistoryBtn">履歴を削除</button>
+      </div>
+
+      <!-- エラーメッセージ -->
+      <div class="error-message" id="errorMessage"></div>
+
+      <!-- メインカード -->
+      <div class="main-card" id="weatherSection">
+        <div class="card-header">
+          <div class="location-info">
+            <div class="location-name" id="locationName">東京都</div>
+            <div class="location-date" id="locationDate"></div>
+          </div>
+          <div class="weather-icon" id="weatherIcon">☀️</div>
+        </div>
+
+        <div class="temperature-block">
+          <div class="temp-main" id="tempMain">--</div>
+          <div class="temp-unit">°C</div>
+        </div>
+
+        <div class="weather-desc" id="weatherDesc">取得中...</div>
+
+        <div class="weather-details">
+          <div class="detail-item">
+            <div class="detail-label">体感温度</div>
+            <div class="detail-value" id="feelsLike">--°C</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">湿度</div>
+            <div class="detail-value" id="humidity">--%</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">風速</div>
+            <div class="detail-value" id="windSpeed">-- m/s</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">降水量</div>
+            <div class="detail-value" id="precipitation">-- mm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 週間予報（サマリー） -->
+      <div class="card">
+        <div class="card-title">週間予報</div>
+        <div class="forecast-list" id="forecastList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="common.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

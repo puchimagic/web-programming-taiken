@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - 各地の天気</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">WeatherNow<span>天気情報サービス</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> ホーム</a>
+      <a href="hourly.html" class="nav-item"><span class="nav-icon">🕐</span> 時間別予報</a>
+      <a href="weekly.html" class="nav-item"><span class="nav-icon">📅</span> 週間予報</a>
+      <a href="cities.html" class="nav-item active"><span class="nav-icon">🗾</span> 各地の天気</a>
+      <a href="living.html" class="nav-item"><span class="nav-icon">📊</span> 生活指数</a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item"><span class="nav-icon">⭐</span> お気に入り</a>
+      <a href="news.html" class="nav-item"><span class="nav-icon">📢</span> 気象情報</a>
+    </nav>
+    <div class="sidebar-footer">© 2025 WeatherNow</div>
+  </aside>
+
+  <div class="app-content">
+    <div class="topbar">
+      <div class="topbar-title">各地の天気</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="card">
+        <div class="card-title">主要都市の天気</div>
+        <div class="cities-grid" id="citiesGrid">
+          <div style="color: var(--text-muted); font-size: 14px;">取得中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    async function loadCities() {
+      const grid = document.getElementById("citiesGrid");
+      grid.innerHTML = "";
+
+      const now = new Date();
+      document.getElementById("lastUpdated").textContent = `最終更新: ${formatTime(now)}`;
+
+      // 全都市の天気を並行取得
+      const results = await Promise.all(
+        CITIES.map(city =>
+          getWeather(city.lat, city.lng)
+            .then(data => ({ city, data }))
+            .catch(() => ({ city, data: null }))
+        )
+      );
+
+      results.forEach(({ city, data }) => {
+        const card = document.createElement("div");
+        card.className = "city-card";
+
+        if (!data) {
+          card.innerHTML = `
+            <div class="city-name">${city.name}</div>
+            <div class="city-desc">取得失敗</div>
+          `;
+        } else {
+          const current = data.current;
+          const w = WEATHER_CODES[current.weather_code] || { icon: "🌡️", desc: "不明" };
+          const daily = data.daily;
+          const max = Math.round(daily.temperature_2m_max[0]);
+          const min = Math.round(daily.temperature_2m_min[0]);
+
+          card.innerHTML = `
+            <div class="city-name">${city.name}</div>
+            <div class="city-weather-row">
+              <div class="city-icon">${w.icon}</div>
+              <div class="city-temp">${Math.round(current.temperature_2m)}°</div>
+            </div>
+            <div class="city-desc">${w.desc}　最高 ${max}° / 最低 ${min}°</div>
+          `;
+        }
+
+        card.addEventListener("click", () => {
+          if (data) {
+            saveCurrentWeather(data, city.name);
+            window.location.href = "index.html";
+          }
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    loadCities();
+  </script>
+</body>
+</html>

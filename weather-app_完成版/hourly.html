@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - 時間別予報</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      WeatherNow
+      <span>天気情報サービス</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item">
+        <span class="nav-icon">🏠</span> ホーム
+      </a>
+      <a href="hourly.html" class="nav-item active">
+        <span class="nav-icon">🕐</span> 時間別予報
+      </a>
+      <a href="weekly.html" class="nav-item">
+        <span class="nav-icon">📅</span> 週間予報
+      </a>
+      <a href="cities.html" class="nav-item">
+        <span class="nav-icon">🗾</span> 各地の天気
+      </a>
+      <a href="living.html" class="nav-item">
+        <span class="nav-icon">📊</span> 生活指数
+      </a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item">
+        <span class="nav-icon">⭐</span> お気に入り
+      </a>
+      <a href="news.html" class="nav-item">
+        <span class="nav-icon">📢</span> 気象情報
+      </a>
+    </nav>
+    <div class="sidebar-footer">© 2025 WeatherNow</div>
+  </aside>
+
+  <div class="app-content">
+    <div class="topbar">
+      <div class="topbar-title">時間別予報</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <div class="main-card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <div>
+            <div class="location-name" id="locationName">東京都</div>
+            <div class="location-date" id="locationDate"></div>
+          </div>
+          <div class="weather-icon" id="weatherIcon">☀️</div>
+        </div>
+        <div class="temperature-block">
+          <div class="temp-main" id="tempMain">--</div>
+          <div class="temp-unit">°C</div>
+        </div>
+        <div class="weather-desc" id="weatherDesc">取得中...</div>
+      </div>
+
+      <!-- 今日の時間別 -->
+      <div class="card">
+        <div class="card-title">今日の時間別予報</div>
+        <div class="hourly-list" id="hourlyTodayList"></div>
+      </div>
+
+      <!-- 明日の時間別 -->
+      <div class="card">
+        <div class="card-title">明日の時間別予報</div>
+        <div class="hourly-list" id="hourlyTomorrowList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    function renderHourly(data, locationName) {
+      const current = data.current;
+      const hourly = data.hourly;
+      const weatherInfo = WEATHER_CODES[current.weather_code] || { icon: "🌡️", desc: "不明" };
+
+      document.getElementById("locationName").textContent = locationName;
+      document.getElementById("weatherIcon").textContent = weatherInfo.icon;
+      document.getElementById("tempMain").textContent = Math.round(current.temperature_2m);
+      document.getElementById("weatherDesc").textContent = weatherInfo.desc;
+
+      const now = new Date();
+      document.getElementById("locationDate").textContent = formatDate(now);
+      document.getElementById("lastUpdated").textContent = `最終更新: ${formatTime(now)}`;
+
+      const todayList = document.getElementById("hourlyTodayList");
+      const tomorrowList = document.getElementById("hourlyTomorrowList");
+      todayList.innerHTML = "";
+      tomorrowList.innerHTML = "";
+
+      // 日本時間で日付文字列を生成
+      const jstOffset = 9 * 60;
+      const toJSTDateStr = (d) => {
+        const jst = new Date(d.getTime() + (jstOffset + d.getTimezoneOffset()) * 60000);
+        return `${jst.getFullYear()}-${String(jst.getMonth()+1).padStart(2,'0')}-${String(jst.getDate()).padStart(2,'0')}`;
+      };
+
+      const today = toJSTDateStr(now);
+      const tomorrow = toJSTDateStr(new Date(now.getTime() + 86400000));
+      const currentHour = now.getHours();
+
+      hourly.time.forEach((timeStr, i) => {
+        // APIは Asia/Tokyo で返ってくるのでそのまま文字列で比較できる
+        const dateKey = timeStr.slice(0, 10);
+        const hour = parseInt(timeStr.slice(11, 13));
+        const w = WEATHER_CODES[hourly.weather_code[i]] || { icon: "🌡️" };
+
+        const item = document.createElement("div");
+        item.className = "hourly-item";
+        if (dateKey === today && hour === currentHour) item.classList.add("current");
+
+        item.innerHTML = `
+          <div class="hourly-time">${hour}時</div>
+          <div class="hourly-icon">${w.icon}</div>
+          <div class="hourly-temp">${Math.round(hourly.temperature_2m[i])}°</div>
+          <div class="hourly-rain">💧${hourly.precipitation_probability[i]}%</div>
+        `;
+
+        if (dateKey === today) todayList.appendChild(item);
+        else if (dateKey === tomorrow) tomorrowList.appendChild(item);
+      });
+    }
+
+    async function init() {
+      const saved = getCurrentWeather();
+      let data, name;
+      if (saved) {
+        data = saved.data;
+        name = saved.locationName;
+      } else {
+        data = await getWeather(35.6895, 139.6917);
+        name = "東京都";
+      }
+      renderHourly(data, name);
+    }
+
+    init();
+  </script>
+</body>
+</html>

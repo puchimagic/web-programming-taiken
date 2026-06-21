@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - お気に入り</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">WeatherNow<span>天気情報サービス</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> ホーム</a>
+      <a href="hourly.html" class="nav-item"><span class="nav-icon">🕐</span> 時間別予報</a>
+      <a href="weekly.html" class="nav-item"><span class="nav-icon">📅</span> 週間予報</a>
+      <a href="cities.html" class="nav-item"><span class="nav-icon">🗾</span> 各地の天気</a>
+      <a href="living.html" class="nav-item"><span class="nav-icon">📊</span> 生活指数</a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item active"><span class="nav-icon">⭐</span> お気に入り</a>
+      <a href="news.html" class="nav-item"><span class="nav-icon">📢</span> 気象情報</a>
+    </nav>
+    <div class="sidebar-footer">© 2025 WeatherNow</div>
+  </aside>
+
+  <div class="app-content">
+    <div class="topbar">
+      <div class="topbar-title">お気に入り</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div id="favoritesContainer"></div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    async function renderFavorites() {
+      const favorites = getFavorites();
+      const container = document.getElementById("favoritesContainer");
+      document.getElementById("lastUpdated").textContent = `最終更新: ${formatTime(new Date())}`;
+
+      if (favorites.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⭐</div>
+            <div class="empty-text">お気に入りがまだありません</div>
+            <div class="empty-sub">ホーム画面から場所を追加できます</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = "";
+      const grid = document.createElement("div");
+      grid.className = "favorites-grid";
+      container.appendChild(grid);
+
+      const results = await Promise.all(
+        favorites.map(fav =>
+          getWeather(fav.lat, fav.lng)
+            .then(data => ({ fav, data }))
+            .catch(() => ({ fav, data: null }))
+        )
+      );
+
+      results.forEach(({ fav, data }) => {
+        const card = document.createElement("div");
+        card.className = "favorite-card";
+
+        if (!data) {
+          card.innerHTML = `
+            <button class="favorite-remove" data-name="${fav.name}">✕</button>
+            <div class="favorite-name">${fav.name}</div>
+            <div class="favorite-desc">取得失敗</div>
+          `;
+        } else {
+          const current = data.current;
+          const w = WEATHER_CODES[current.weather_code] || { icon: "🌡️", desc: "不明" };
+          card.innerHTML = `
+            <button class="favorite-remove" data-name="${fav.name}">✕</button>
+            <div class="favorite-name">${fav.name}</div>
+            <div class="favorite-weather-row">
+              <div class="favorite-icon">${w.icon}</div>
+              <div class="favorite-temp">${Math.round(current.temperature_2m)}°</div>
+            </div>
+            <div class="favorite-desc">${w.desc}　湿度 ${current.relative_humidity_2m}%</div>
+          `;
+        }
+
+        // カードをクリックするとホームでその場所の天気を表示
+        if (data) {
+          card.style.cursor = "pointer";
+          card.addEventListener("click", () => {
+            saveCurrentWeather(data, fav.name);
+            window.location.href = "index.html";
+          });
+        }
+
+        grid.appendChild(card);
+      });
+
+      // 削除ボタン
+      grid.querySelectorAll(".favorite-remove").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          removeFavorite(btn.dataset.name);
+          renderFavorites();
+        });
+      });
+    }
+
+    renderFavorites();
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - 気象情報</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">WeatherNow<span>天気情報サービス</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> ホーム</a>
+      <a href="hourly.html" class="nav-item"><span class="nav-icon">🕐</span> 時間別予報</a>
+      <a href="weekly.html" class="nav-item"><span class="nav-icon">📅</span> 週間予報</a>
+      <a href="cities.html" class="nav-item"><span class="nav-icon">🗾</span> 各地の天気</a>
+      <a href="living.html" class="nav-item"><span class="nav-icon">📊</span> 生活指数</a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item"><span class="nav-icon">⭐</span> お気に入り</a>
+      <a href="news.html" class="nav-item active"><span class="nav-icon">📢</span> 気象情報</a>
+    </nav>
+    <div class="sidebar-footer">© 2025 WeatherNow</div>
+  </aside>
+
+  <div class="app-content">
+    <div class="topbar">
+      <div class="topbar-title">気象情報</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="card">
+        <div class="card-title" id="cardTitle">注意報・警報・お知らせ — 東京都</div>
+        <div class="news-list" id="newsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    // 天気データをもとに気象情報を生成する
+    function generateNews(data) {
+      const current = data.current;
+      const daily = data.daily;
+      const news = [];
+      const now = new Date();
+
+      const temp = current.temperature_2m;
+      const wind = current.wind_speed_10m;
+      const code = current.weather_code;
+      const maxTemp = Math.max(...daily.temperature_2m_max);
+      const totalRain = daily.precipitation_sum.reduce((a, b) => a + b, 0);
+
+      if ([95, 99].includes(code)) {
+        news.push({ badge: "alert", label: "警報", title: "雷雨警報が発令されています。外出はお控えください。", time: formatTime(now) });
+      }
+      if (wind >= 15) {
+        news.push({ badge: "alert", label: "注意報", title: `強風注意報：現在の風速は ${wind} m/s です。`, time: formatTime(now) });
+      }
+      if (maxTemp >= 35) {
+        news.push({ badge: "warning", label: "警戒", title: `今週の最高気温は ${maxTemp}°C の見込みです。熱中症に厳重注意。`, time: formatTime(now) });
+      } else if (maxTemp >= 30) {
+        news.push({ badge: "warning", label: "注意", title: `今週は ${maxTemp}°C まで上がる見込みです。こまめに水分補給を。`, time: formatTime(now) });
+      }
+      if (totalRain > 50) {
+        news.push({ badge: "warning", label: "注意", title: `今週の週間降水量は約 ${Math.round(totalRain)}mm の見込みです。`, time: formatTime(now) });
+      }
+      if (temp <= 0) {
+        news.push({ badge: "alert", label: "注意報", title: "気温が0°C以下です。路面凍結にご注意ください。", time: formatTime(now) });
+      }
+
+      // 通常の気象情報
+      news.push({ badge: "info", label: "情報", title: "今週の天気概況：" + (totalRain > 30 ? "雨の日が多い見込みです。" : "比較的天気の良い日が続く見込みです。"), time: formatTime(now) });
+      news.push({ badge: "info", label: "情報", title: "週間気温：最高 " + Math.max(...daily.temperature_2m_max) + "°C、最低 " + Math.min(...daily.temperature_2m_min) + "°C の見込みです。", time: formatTime(now) });
+
+      return news;
+    }
+
+    function renderNews(data, locationName) {
+      const now = new Date();
+      document.getElementById("cardTitle").textContent = `注意報・警報・お知らせ — ${locationName}`;
+      document.getElementById("lastUpdated").textContent = `最終更新: ${formatTime(now)}`;
+
+      const newsList = document.getElementById("newsList");
+      const news = generateNews(data);
+
+      newsList.innerHTML = "";
+      news.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "news-item";
+        el.innerHTML = `
+          <span class="news-badge badge-${item.badge}">${item.label}</span>
+          <div class="news-body">
+            <div class="news-title">${item.title}</div>
+            <div class="news-time">${item.time} 更新</div>
+          </div>
+        `;
+        newsList.appendChild(el);
+      });
+    }
+
+    async function init() {
+      const saved = getCurrentWeather();
+      let data, name;
+      if (saved) { data = saved.data; name = saved.locationName; }
+      else { data = await getWeather(35.6895, 139.6917); name = "東京都"; }
+      renderNews(data, name);
+    }
+
+    init();
+  </script>
+</body>
+</html>

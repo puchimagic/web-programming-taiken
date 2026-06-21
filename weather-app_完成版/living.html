@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - 生活指数</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">WeatherNow<span>天気情報サービス</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> ホーム</a>
+      <a href="hourly.html" class="nav-item"><span class="nav-icon">🕐</span> 時間別予報</a>
+      <a href="weekly.html" class="nav-item"><span class="nav-icon">📅</span> 週間予報</a>
+      <a href="cities.html" class="nav-item"><span class="nav-icon">🗾</span> 各地の天気</a>
+      <a href="living.html" class="nav-item active"><span class="nav-icon">📊</span> 生活指数</a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item"><span class="nav-icon">⭐</span> お気に入り</a>
+      <a href="news.html" class="nav-item"><span class="nav-icon">📢</span> 気象情報</a>
+    </nav>
+    <div class="sidebar-footer">© 2025 WeatherNow</div>
+  </aside>
+
+  <div class="app-content">
+    <div class="topbar">
+      <div class="topbar-title">生活指数</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="card">
+        <div class="card-title" id="cardTitle">生活指数 — 東京都</div>
+        <div class="index-grid" id="indexGrid">
+          <div style="color: var(--text-muted); font-size: 14px;">取得中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    function calcIndexes(data) {
+      const c = data.current;
+      const temp = c.temperature_2m;
+      const humidity = c.relative_humidity_2m;
+      const wind = c.wind_speed_10m;
+      const precip = c.precipitation;
+      const code = c.weather_code;
+      const isRainy = [51,53,55,61,63,65,80,81,82,95,99].includes(code);
+
+      return [
+        {
+          icon: "☂️", name: "傘",
+          value: isRainy ? "必要" : precip > 0 ? "念のため" : "不要",
+          level: isRainy ? "bad" : precip > 0 ? "normal" : "good",
+        },
+        {
+          icon: "👕", name: "洗濯",
+          value: humidity < 50 && !isRainy ? "最適" : humidity < 70 && !isRainy ? "良好" : "不向き",
+          level: humidity < 50 && !isRainy ? "good" : humidity < 70 && !isRainy ? "normal" : "bad",
+        },
+        {
+          icon: "🌡️", name: "熱中症",
+          value: temp >= 35 ? "危険" : temp >= 30 ? "厳重注意" : temp >= 25 ? "注意" : "低い",
+          level: temp >= 35 ? "bad" : temp >= 28 ? "normal" : "good",
+        },
+        {
+          icon: "🏃", name: "お出かけ",
+          value: !isRainy && temp >= 10 && temp <= 30 ? "快適" : !isRainy ? "やや注意" : "不向き",
+          level: !isRainy && temp >= 10 && temp <= 30 ? "good" : !isRainy ? "normal" : "bad",
+        },
+        {
+          icon: "🚗", name: "ドライブ",
+          value: !isRainy && wind < 10 ? "快適" : wind >= 15 ? "注意" : "普通",
+          level: !isRainy && wind < 10 ? "good" : wind >= 15 ? "bad" : "normal",
+        },
+        {
+          icon: "😴", name: "睡眠",
+          value: temp >= 15 && temp <= 25 && humidity < 70 ? "快適" : temp > 28 ? "蒸し暑い" : "普通",
+          level: temp >= 15 && temp <= 25 && humidity < 70 ? "good" : temp > 28 ? "bad" : "normal",
+        },
+        {
+          icon: "🌿", name: "乾燥",
+          value: humidity < 40 ? "乾燥注意" : humidity < 60 ? "やや乾燥" : "問題なし",
+          level: humidity < 40 ? "bad" : humidity < 60 ? "normal" : "good",
+        },
+        {
+          icon: "⚡", name: "雷",
+          value: [95, 99].includes(code) ? "あり" : "なし",
+          level: [95, 99].includes(code) ? "bad" : "good",
+        },
+      ];
+    }
+
+    function renderIndexes(data, locationName) {
+      document.getElementById("cardTitle").textContent = `生活指数 — ${locationName}`;
+      document.getElementById("lastUpdated").textContent = `最終更新: ${formatTime(new Date())}`;
+
+      const indexes = calcIndexes(data);
+      const grid = document.getElementById("indexGrid");
+      grid.innerHTML = "";
+
+      indexes.forEach(idx => {
+        const card = document.createElement("div");
+        card.className = "index-card";
+        card.innerHTML = `
+          <div class="index-icon">${idx.icon}</div>
+          <div class="index-name">${idx.name}</div>
+          <div class="index-value">${idx.value}</div>
+          <div class="index-level level-${idx.level}">${idx.level === "good" ? "良好" : idx.level === "normal" ? "注意" : "警戒"}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function init() {
+      const saved = getCurrentWeather();
+      let data, name;
+      if (saved) { data = saved.data; name = saved.locationName; }
+      else { data = await getWeather(35.6895, 139.6917); name = "東京都"; }
+      renderIndexes(data, name);
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherNow - 週間予報</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    .weekly-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .weekly-item {
+      background: var(--bg-card-hover);
+      border-radius: var(--radius-sm);
+      padding: 18px 24px;
+      display: grid;
+      grid-template-columns: 80px 48px 1fr 80px 80px 80px;
+      align-items: center;
+      gap: 16px;
+      transition: background var(--transition);
+    }
+    .weekly-item:hover { background: var(--bg-card-hover); }
+    .weekly-item.today { border-left: 3px solid var(--primary); }
+    .weekly-day { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .weekly-icon { font-size: 28px; text-align: center; }
+    .weekly-desc { font-size: 13px; color: var(--text-secondary); }
+    .weekly-stat { text-align: center; }
+    .weekly-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .weekly-stat-value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .temp-bar-wrapper { display: flex; align-items: center; gap: 8px; }
+    .temp-min-label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+    .temp-max-label { font-size: 13px; color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+    .temp-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+    .temp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--primary)); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">WeatherNow<span>天気情報サービス</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">メニュー</div>
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> ホーム</a>
+      <a href="hourly.html" class="nav-item"><span class="nav-icon">🕐</span> 時間別予報</a>
+      <a href="weekly.html" class="nav-item active"><span class="nav-icon">📅</span> 週間予報</a>
+      <a href="cities.html" class="nav-item"><span class="nav-icon">🗾</span> 各地の天気</a>
+      <a href="living.html" class="nav-item"><span class="nav-icon">📊</span> 生活指数</a>
+      <div class="nav-label">マイページ</div>
+      <a href="favorites.html" class="nav-item"><span class="nav-icon">⭐</span> お気に入り</a>
+      <a href="news.html" class="nav-item"><span class="nav-icon">📢</span> 気象情報</a>
+    </nav>
+    <div class="sidebar-footer">© 2025 WeatherNow</div>
+  </aside>
+
+  <div class="app-content">
+    <div class="topbar">
+      <div class="topbar-title">週間予報</div>
+      <div class="topbar-right">
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="card">
+        <div class="card-title" id="cardTitle">週間予報 — 東京都</div>
+        <div class="weekly-list" id="weeklyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    function renderWeekly(data, locationName) {
+      const daily = data.daily;
+      document.getElementById("cardTitle").textContent = `週間予報 — ${locationName}`;
+      document.getElementById("lastUpdated").textContent = `最終更新: ${formatTime(new Date())}`;
+
+      const allTemps = [...daily.temperature_2m_max, ...daily.temperature_2m_min];
+      const globalMin = Math.min(...allTemps);
+      const globalMax = Math.max(...allTemps);
+
+      const list = document.getElementById("weeklyList");
+      list.innerHTML = "";
+
+      daily.time.forEach((dateStr, i) => {
+        const date = new Date(dateStr);
+        const w = WEATHER_CODES[daily.weather_code[i]] || { icon: "🌡️", desc: "不明" };
+        const max = Math.round(daily.temperature_2m_max[i]);
+        const min = Math.round(daily.temperature_2m_min[i]);
+        const barWidth = globalMax > globalMin
+          ? ((max - globalMin) / (globalMax - globalMin)) * 100
+          : 50;
+
+        const item = document.createElement("div");
+        item.className = "weekly-item" + (i === 0 ? " today" : "");
+        item.innerHTML = `
+          <div class="weekly-day">${i === 0 ? "今日" : `${date.getMonth()+1}/${date.getDate()}（${DAYS[date.getDay()]}）`}</div>
+          <div class="weekly-icon">${w.icon}</div>
+          <div>
+            <div class="weekly-desc">${w.desc}</div>
+            <div class="temp-bar-wrapper" style="margin-top:6px;">
+              <div class="temp-min-label">${min}°</div>
+              <div class="temp-bar-bg"><div class="temp-bar-fill" style="width:${barWidth}%"></div></div>
+              <div class="temp-max-label">${max}°</div>
+            </div>
+          </div>
+          <div class="weekly-stat">
+            <div class="weekly-stat-label">最高</div>
+            <div class="weekly-stat-value" style="color:#f87171">${max}°C</div>
+          </div>
+          <div class="weekly-stat">
+            <div class="weekly-stat-label">最低</div>
+            <div class="weekly-stat-value" style="color:var(--accent)">${min}°C</div>
+          </div>
+          <div class="weekly-stat">
+            <div class="weekly-stat-label">降水</div>
+            <div class="weekly-stat-value">${daily.precipitation_sum[i]}mm</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    async function init() {
+      const saved = getCurrentWeather();
+      let data, name;
+      if (saved) { data = saved.data; name = saved.locationName; }
+      else { data = await getWeather(35.6895, 139.6917); name = "東京都"; }
+      renderWeekly(data, name);
+    }
+
+    init();
+  </script>
+</body>
+</html>
